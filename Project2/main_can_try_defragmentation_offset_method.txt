@@ -1,0 +1,234 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <cstdlib>
+#include <iomanip>
+#include <algorithm>
+#include <queue>
+#include <vector>
+#include "process.h"
+#include "memory.h"
+
+struct process_info{
+	char pid;
+	int burst_left; 
+	int memory;
+};
+
+
+bool SortProcessByPID(	const process_info &p1, 
+								const process_info &p2);
+void NonContiguousSimulation(	std::vector <Process> all_process	);
+
+int main(int argc, char const *argv[])
+{
+
+#if 0
+	if(argc!=3){
+		std::cerr<<"Usage: a.out arg1 arg2\n";
+	}
+#endif
+	std::vector< std::pair<int, int> > A_bursts;
+	A_bursts.push_back(std::make_pair(0,350));
+	A_bursts.push_back(std::make_pair(400,50));
+	Process A('A', 45, A_bursts);
+
+	std::vector< std::pair<int, int> > B_bursts;
+	B_bursts.push_back(std::make_pair(0,2650));
+	Process B('B', 28, B_bursts);
+
+	std::vector< std::pair<int, int> > C_bursts;
+	C_bursts.push_back(std::make_pair(0,950));
+	C_bursts.push_back(std::make_pair(1100,100));
+	Process C('C', 58, C_bursts);
+
+	std::vector <Process> all_process;
+	all_process.push_back(A);
+	all_process.push_back(B);
+	all_process.push_back(C);
+
+	NonContiguousSimulation( all_process );
+
+	return 0;
+}
+
+void RemoveFinishedProcess(
+	std::vector <process_info> &running_process){
+	std::vector <process_info>::iterator process_itr=running_process.begin();
+	while(process_itr!=running_process.end()){
+		if(process_itr->burst_left==0)running_process.erase(process_itr);
+		else ++process_itr;
+	}
+}
+
+#if 0
+void ContinuousSimulation(	std::vector <Process> all_process	){
+
+
+	Memory my_memory;
+	std::vector <process_info> running_process;
+	long clock_time = 0;
+	std::vector<Process> arrived_process;
+
+
+	while(clock_time<5000){
+		arrived_process.clear();
+
+		//add new process
+			//nextfit bestfit worstfit
+			//defragmentation
+				//time postpone
+		//burst
+		//remove finished process from memory
+	}
+
+}
+#endif
+
+void ContiguousSimulation(	std::vector <Process> all_process	){
+
+
+	Memory my_memory;
+	std::vector <process_info> running_process;
+	int clock_time = 0;
+	std::vector<process_info> arrived_process;
+
+
+	while(clock_time<5000){
+
+		arrived_process.clear();
+		for(unsigned int i=0; i<all_process.size(); ++i){
+
+			std::pair<int, int> tmp_proc_burst = 
+				all_process[i].CheckBurstArrival(clock_time);
+
+			if(tmp_proc_burst.first!=-1){
+				process_info the_process;
+				the_process.pid = all_process[i].PID();
+				the_process.burst_left = tmp_proc_burst.second;
+				the_process.memory = all_process[i].GetMemory();
+				arrived_process.push_back(the_process);
+				std::cout<<"process "<<the_process.pid<<" arrived: memory "<<the_process.memory<<std::endl;
+			}
+
+		}
+		std::sort(arrived_process.begin(), arrived_process.end(), SortProcessByPID);
+
+		//add new process
+		for(unsigned int i=0; i<arrived_process.size(); ++i){
+			//have enough space
+			if(arrived_process[i].memory<=my_memory.FreeSpace()){
+				int index = BestOrWostFit(arrived_process[i].memory, "BEST");
+				if(index != -1){
+					my_memory.AddProcessCont(arrived_process[i].pid, index, arrived_process[i].memory);
+					running_process.push_back(arrived_process[i]);
+					std::cout<<clock_time<<"ms: added process "<<arrived_process[i].pid<<std::endl;
+					my_memory.MemoryPrint();
+				}else{//defragmentation
+					int pospone = my_memory.Defragmentation();
+					
+				}
+			}else{//not enough space
+				std::cout<<clock_time<<"ms: skipped process "<<arrived_process[i].pid<<std::endl;
+			}
+			
+		}
+
+
+
+
+		++clock_time;	
+		//burst
+		for(unsigned int i=0; i<running_process.size(); ++i){
+			running_process[i].burst_left--;
+		}
+
+		//remove finished process from memory
+		std::vector<process_info>::iterator proc_itr = running_process.begin();
+		while(proc_itr!=running_process.end()){
+			if(proc_itr->burst_left==0){
+				my_memory.RemoveProcess(proc_itr->pid);
+				std::cout<<clock_time<<"ms: removed process "<<proc_itr->pid<<std::endl;
+				running_process.erase(proc_itr);
+				my_memory.MemoryPrint();
+			}else{
+				++proc_itr;
+			}
+		}	
+
+	}
+
+}
+
+void NonContiguousSimulation(	std::vector <Process> all_process	){
+
+
+	Memory my_memory;
+	std::vector <process_info> running_process;
+	int clock_time = 0;
+	std::vector<process_info> arrived_process;
+
+
+	while(clock_time<5000){
+
+		arrived_process.clear();
+		for(unsigned int i=0; i<all_process.size(); ++i){
+
+			std::pair<int, int> tmp_proc_burst = 
+				all_process[i].CheckBurstArrival(clock_time);
+
+			if(tmp_proc_burst.first!=-1){
+				process_info the_process;
+				the_process.pid = all_process[i].PID();
+				the_process.burst_left = tmp_proc_burst.second;
+				the_process.memory = all_process[i].GetMemory();
+				arrived_process.push_back(the_process);
+				std::cout<<"process "<<the_process.pid<<" arrived: memory "<<the_process.memory<<std::endl;
+			}
+
+		}
+		std::sort(arrived_process.begin(), arrived_process.end(), SortProcessByPID);
+
+		//add new process
+		for(unsigned int i=0; i<arrived_process.size(); ++i){
+			//have enough space
+			if(arrived_process[i].memory<=my_memory.FreeSpace()){
+				my_memory.AddProcessNonCont(arrived_process[i].pid, 
+						arrived_process[i].memory);
+				running_process.push_back(arrived_process[i]);
+				std::cout<<clock_time<<"ms: added process "<<arrived_process[i].pid<<std::endl;
+				my_memory.MemoryPrint();
+			}else{//not enough space
+				std::cout<<clock_time<<"ms: skipped process "<<arrived_process[i].pid<<std::endl;
+			}
+			
+		}
+
+		//burst
+		for(unsigned int i=0; i<running_process.size(); ++i){
+			running_process[i].burst_left--;
+		}
+
+		++clock_time;	
+		//remove finished process from memory
+		std::vector<process_info>::iterator proc_itr = running_process.begin();
+		while(proc_itr!=running_process.end()){
+			if(proc_itr->burst_left==0){
+				my_memory.RemoveProcess(proc_itr->pid);
+				std::cout<<clock_time<<"ms: removed process "<<proc_itr->pid<<std::endl;
+				running_process.erase(proc_itr);
+				my_memory.MemoryPrint();
+			}else{
+				++proc_itr;
+			}
+		}	
+
+	}
+
+}
+
+bool SortProcessByPID(	const process_info &p1, 
+								const process_info &p2){
+	return p1.pid < p2.pid;
+}

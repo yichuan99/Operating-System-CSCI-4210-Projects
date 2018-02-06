@@ -1,0 +1,3 @@
+defragmentation --> when out-of-memory error occurs
+
+dynamic partitioning scheme
